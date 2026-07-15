@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Cat,
   Clock,
@@ -20,7 +20,8 @@ import {
   Flame,
   Plus,
   Trash2,
-  Edit2
+  Edit2,
+  RotateCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -33,15 +34,31 @@ const CatInBox = ({ state }: { state: 'focus' | 'rest' | 'play' }) => {
         className="w-full h-full drop-shadow-xl"
         animate={state === 'play' ? { y: [0, -4, 0], transition: { repeat: Infinity, duration: 0.6, ease: "easeInOut" } } : {}}
       >
-        {/* Tail */}
+        {/* Tail (Curved and waving smoothly like a real cat tail, lying low on the ground) */}
         <motion.path
-          d="M 140 145 C 150 90, 165 40, 175 30 C 185 35, 170 80, 155 145 Z"
+          d="M 140 145 C 158 152, 172 155, 182 150 C 185 144, 168 138, 148 143 Z"
           fill="#1a1a1a"
-          style={{ transformOrigin: '150px 145px' }}
           animate={
-            state === 'focus' ? { rotate: [-6, 6, -6], transition: { repeat: Infinity, duration: 4, ease: 'easeInOut' } } :
-            state === 'play' ? { rotate: [-15, 15, -15], transition: { repeat: Infinity, duration: 0.8, ease: 'easeInOut' } } :
-            { rotate: 12 }
+            state === 'focus' ? { 
+              d: [
+                "M 140 145 C 158 152, 172 155, 182 150 C 185 144, 168 138, 148 143 Z", // 중립 낮은 상태
+                "M 140 145 C 158 148, 172 148, 184 142 C 186 136, 166 134, 148 143 Z", // 살짝 위로 살랑
+                "M 140 145 C 158 156, 172 162, 180 158 C 182 152, 168 142, 148 143 Z", // 살짝 아래로 살랑
+                "M 140 145 C 158 152, 172 155, 182 150 C 185 144, 168 138, 148 143 Z"  // 복귀
+              ],
+              transition: { repeat: Infinity, duration: 4.0, ease: 'easeInOut' } 
+            } :
+            state === 'play' ? { 
+              d: [
+                "M 140 145 C 158 152, 172 155, 182 150 C 185 144, 168 138, 148 143 Z",
+                "M 140 145 C 160 144, 180 142, 190 132 C 192 126, 172 128, 148 143 Z", // 위로 더 살랑
+                "M 140 145 C 155 160, 170 168, 178 164 C 180 158, 165 144, 148 143 Z", // 아래로 더 살랑
+                "M 140 145 C 158 152, 172 155, 182 150 C 185 144, 168 138, 148 143 Z"
+              ],
+              transition: { repeat: Infinity, duration: 1.5, ease: 'easeInOut' } 
+            } : {
+              d: "M 140 145 C 158 152, 172 155, 182 150 C 185 144, 168 138, 148 143 Z"
+            }
           }
         />
 
@@ -71,15 +88,6 @@ const CatInBox = ({ state }: { state: 'focus' | 'rest' | 'play' }) => {
           <path d="M 28 155 Q 90 165 152 155 L 152 145 L 28 145 Z" />
         </g>
 
-        {/* Vertical Stress Lines */}
-        {state !== 'play' && (
-          <g stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" opacity="0.6">
-            <line x1="85" y1="55" x2="85" y2="70" />
-            <line x1="90" y1="58" x2="90" y2="78" />
-            <line x1="95" y1="55" x2="95" y2="70" />
-          </g>
-        )}
-
         {/* Playful Item (Yarn Ball) */}
         {state === 'play' && (
           <motion.g animate={{ x: [-20, 20, -20], transition: { repeat: Infinity, duration: 1.5, ease: "easeInOut" } }}>
@@ -88,7 +96,7 @@ const CatInBox = ({ state }: { state: 'focus' | 'rest' | 'play' }) => {
           </motion.g>
         )}
 
-        {/* Eyes (Empty White Outlines) */}
+        {/* Eyes (Empty White Outlines - No inner pupils or glare lines, pure black/white high-contrast style matching the image) */}
         {state === 'rest' ? (
           <g>
             <path d="M 40 146 Q 55 154 70 146" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
@@ -113,27 +121,39 @@ function PrototypeView() {
   const [appState, setAppState] = useState<'focus' | 'rest' | 'play'>('focus');
   const [prototypeTab, setPrototypeTab] = useState<'timer' | 'calendar'>('timer');
   const [selectedDate, setSelectedDate] = useState<number | null>(14);
-  const [timeLeft, setTimeLeft] = useState(50 * 60); // 50 minutes
+  const [stopwatchSeconds, setStopwatchSeconds] = useState(() => {
+    const saved = localStorage.getItem('stopwatchSeconds');
+    return saved ? Number(saved) : (2 * 3600 + 15 * 60);
+  });
   const [todos, setTodos] = useState([
     { id: 1, text: '수학 모의고사 1회 풀기', done: false },
     { id: 2, text: '영어 단어 day 15 암기', done: true },
     { id: 3, text: '국어 비문학 3지문 분석', done: false },
   ]);
   const [newTodo, setNewTodo] = useState('');
-  const [targetHours, setTargetHours] = useState(6);
+  const [targetHours, setTargetHours] = useState(() => {
+    const saved = localStorage.getItem('targetHours');
+    return saved ? Number(saved) : 6;
+  });
+  const [targetMinutes, setTargetMinutes] = useState(() => {
+    const saved = localStorage.getItem('targetMinutes');
+    return saved ? Number(saved) : 0;
+  });
   const [isEditingTarget, setIsEditingTarget] = useState(false);
-  const [totalStudied, setTotalStudied] = useState(2 * 3600 + 15 * 60);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (appState === 'focus' && timeLeft > 0) {
+    if (appState === 'focus') {
       interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-        setTotalStudied((prev) => prev + 1);
+        setStopwatchSeconds((prev) => {
+          const next = prev + 1;
+          localStorage.setItem('stopwatchSeconds', next.toString());
+          return next;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [appState, timeLeft]);
+  }, [appState]);
 
   const toggleTodo = (id: number) => {
     setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
@@ -150,9 +170,20 @@ function PrototypeView() {
     setTodos([]);
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
+  const formatTotalTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
+    return `${h > 0 ? `${h}시간 ` : ''}${m}분 ${s}초`;
+  };
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) {
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
@@ -162,7 +193,7 @@ function PrototypeView() {
     
     let hours = 0;
     if (date < 14) hours = Math.floor(Math.random() * 5) + 1; 
-    if (date === 14) hours = totalStudied / 3600;
+    if (date === 14) hours = stopwatchSeconds / 3600;
     
     return { date, hours };
   });
@@ -205,12 +236,29 @@ function PrototypeView() {
           </AnimatePresence>
 
           {/* Timer Display */}
-          <div className="text-center mb-6 shrink-0">
+          <div className="text-center mb-6 shrink-0 pt-4">
             <div className="text-sm font-bold text-slate-400 tracking-widest uppercase mb-1">
               {appState === 'focus' ? '집중하는 중' : appState === 'play' ? '안전하게 뇌 식히는 중' : '꿀잠 자는 중'}
             </div>
-            <div className={`text-6xl font-black tabular-nums tracking-tighter ${appState === 'focus' ? 'text-slate-800' : 'text-indigo-600'}`}>
-              {formatTime(timeLeft)}
+
+            <div className="flex items-center justify-center gap-3">
+              {/* 스톱워치 디스플레이 */}
+              <div className={`text-6xl font-black tabular-nums tracking-tighter pl-8 ${appState === 'focus' ? 'text-slate-800' : 'text-indigo-600'}`}>
+                {formatTime(stopwatchSeconds)}
+              </div>
+
+              {/* 스톱워치 초기화 버튼 */}
+              <button
+                onClick={() => {
+                  setStopwatchSeconds(0);
+                  localStorage.setItem('stopwatchSeconds', '0');
+                  setAppState('rest'); // 초기화 후 일시정지 상태로 변경
+                }}
+                className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50/50 rounded-xl transition-all active:scale-95 flex items-center justify-center"
+                title="스톱워치 및 오늘 공부량 초기화"
+              >
+                <RotateCcw size={20} />
+              </button>
             </div>
           </div>
 
@@ -226,30 +274,50 @@ function PrototypeView() {
                 </h3>
                 {isEditingTarget ? (
                   <div className="flex items-center gap-2 mt-2">
-                    <input 
-                      type="number" 
-                      value={targetHours || ''} 
-                      onChange={(e) => setTargetHours(Number(e.target.value))}
-                      className="w-16 px-2 py-1 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 bg-white"
-                      min="1" max="24"
-                    />
-                    <span className="text-xs text-slate-500 font-medium">시간</span>
+                    <div className="flex items-center gap-1">
+                      <input 
+                        type="number" 
+                        value={targetHours} 
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(23, Number(e.target.value)));
+                          setTargetHours(val);
+                          localStorage.setItem('targetHours', val.toString());
+                        }}
+                        className="w-12 px-1 py-1 text-center text-sm border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 bg-white"
+                        min="0" max="23"
+                      />
+                      <span className="text-xs text-slate-500 font-medium">시간</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input 
+                        type="number" 
+                        value={targetMinutes} 
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(59, Number(e.target.value)));
+                          setTargetMinutes(val);
+                          localStorage.setItem('targetMinutes', val.toString());
+                        }}
+                        className="w-12 px-1 py-1 text-center text-sm border border-slate-200 rounded-md focus:outline-none focus:border-indigo-500 bg-white"
+                        min="0" max="59"
+                      />
+                      <span className="text-xs text-slate-500 font-medium">분</span>
+                    </div>
                     <button onClick={() => setIsEditingTarget(false)} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md font-bold hover:bg-indigo-200">확인</button>
                   </div>
                 ) : (
                   <p className="text-xs text-slate-500 font-medium mt-1">
-                    {targetHours}시간 00분 중 <span className="text-indigo-600 font-bold">{Math.floor(totalStudied / 3600)}시간 {Math.floor((totalStudied % 3600) / 60)}분</span> 달성!
+                    {targetHours}시간 {targetMinutes.toString().padStart(2, '0')}분 중 <span className="text-indigo-600 font-bold">{Math.floor(stopwatchSeconds / 3600)}시간 {Math.floor((stopwatchSeconds % 3600) / 60)}분</span> 달성!
                   </p>
                 )}
               </div>
               <div className="text-xl font-black text-indigo-600 tracking-tighter">
-                {targetHours > 0 ? Math.min(100, Math.round((totalStudied / (targetHours * 3600)) * 100)) : 0}%
+                {((targetHours * 3600) + (targetMinutes * 60)) > 0 ? Math.min(100, Math.round((stopwatchSeconds / ((targetHours * 3600) + (targetMinutes * 60))) * 100)) : 0}%
               </div>
             </div>
             <div className="h-3.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
               <motion.div 
                 initial={{ width: 0 }}
-                animate={{ width: `${targetHours > 0 ? Math.min(100, Math.round((totalStudied / (targetHours * 3600)) * 100)) : 0}%` }}
+                animate={{ width: `${((targetHours * 3600) + (targetMinutes * 60)) > 0 ? Math.min(100, Math.round((stopwatchSeconds / ((targetHours * 3600) + (targetMinutes * 60))) * 100)) : 0}%` }}
                 transition={{ duration: 1, ease: "easeOut" }}
                 className="h-full bg-indigo-500 rounded-full" 
               />
