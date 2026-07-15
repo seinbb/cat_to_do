@@ -1,0 +1,6 @@
+{
+  "name": "PauseCat PRD",
+  "description": "AI 기반 힐링 집중 타이머 앱 서비스 기획서 (PRD)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
